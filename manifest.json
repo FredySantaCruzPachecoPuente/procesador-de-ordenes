@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Procesador de órdenes",
+  "version": "1.0",
+  "description": "Procesa órdenes mediante códigos de barras",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}
