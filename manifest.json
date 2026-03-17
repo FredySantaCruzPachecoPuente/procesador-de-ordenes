@@ -4,6 +4,9 @@
   "version": "1.0",
   "description": "Procesa órdenes mediante códigos de barras",
   "permissions": ["activeTab", "scripting"],
+  "icons": {
+    "32": "favicon.png"
+  },
   "action": {
     "default_popup": "popup.html"
   },

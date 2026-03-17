@@ -16,15 +16,53 @@
         #progress-container { margin-top: 15px; max-height: 150px; overflow-y: auto; font-size: 12px; border-top: 1px solid #eee; padding-top: 10px; }
         .log-entry { margin-bottom: 5px; padding: 4px; border-radius: 4px; background: #f9f9f9; }
         .error { color: #e74c3c; font-weight: bold; }
+        .progressBar{
+            height:8px;
+            background: #d1d2d3;
+            border-radius:10px;
+            margin-top:5px;
+            overflow:hidden;
+        }
+        #progress{
+            height:100%;
+            width:0%;
+            background:#22c55e;
+        }
+        .header-container {
+            display: flex;         /* Activa el modo flexible */
+            align-items: center;   /* Alinea verticalmente al centro */
+            gap: 10px;             /* Espacio entre la imagen y el texto */
+        }
+
+        .logo-img {
+            width: 25px;
+            height: auto;          /* Mantiene la proporción */
+        }
+
+        .title {
+            margin: 0;             /* Elimina el margen por defecto del h2 */
+            font-size: 1rem;     /* Ajusta el tamaño según necesites */
+        }
+        .arrow{
+            font-size: 2rem;
+        }
     </style>
 </head>
 <body>
 <div class="card">
-    <h2>Procesador de ordenes</h2>
+    <div class="header-container">
+        <img src="favicon.png" alt="Logo" class="logo-img">
+        <h2 class="title">Marketcare ↔ Mediven</h2>
+    </div>
+
     <input type="text" id="orderNumber" placeholder="Número de Orden (ej: 12345)">
     <div class="btn-group">
         <button id="startBtn">Iniciar</button>
-        <button id="stopBtn">Detener</button>
+        <button id="stopBtn" style="display: none">Detener</button>
+    </div>
+    <div id="progressTxt" class="error" style="text-align: center;margin-top: 15px"></div>
+    <div class="progressBar">
+        <div id="progress"></div>
     </div>
     <div id="progress-container">
         <div id="statusText"></div>

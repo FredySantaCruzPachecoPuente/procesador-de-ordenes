@@ -72,10 +72,10 @@ async function processSingleBarcode(order, item) {
     let elemento = null;
 
     // Reintento para encontrar el elemento en la tabla
-    for (let j = 0; j < 20; j++) {
+    for (let j = 0; j < 5; j++) {
         elemento = document.querySelector(selector);
         if (elemento) break;
-        await sleep(500);
+        await sleep(300);
     }
 
     if (elemento) {

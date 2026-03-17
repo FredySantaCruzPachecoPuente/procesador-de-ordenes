@@ -1,8 +1,14 @@
 const urlApi = 'http://localhost/test/api/';
 const urlApiGetOrder = urlApi + 'get.php';
 const urlApiReportError = urlApi + 'error.php';
+
+const stopBtn = document.getElementById('stopBtn');
+const startBtn = document.getElementById('startBtn');
+const progressBar = document.getElementById('progress');
+const progressTxt = document.getElementById('progressTxt');
+const orderInput = document.getElementById('orderNumber');
+
 document.getElementById('startBtn').addEventListener('click', async () => {
-    const orderInput = document.getElementById('orderNumber');
     const orderNumber = orderInput.value.trim();
 
     const logsDiv = document.getElementById('logs');
@@ -57,6 +63,10 @@ document.getElementById('startBtn').addEventListener('click', async () => {
                 addLog("Error: Asegúrate de estar en la pestaña correcta y recargar la página.", true);
             } else {
                 addLog("Proceso iniciado en la página...");
+
+                stopBtn.style.display = 'block';
+                startBtn.style.display = 'none';
+                updateProgress(0,0);
             }
         });
 
@@ -73,13 +83,17 @@ document.getElementById('stopBtn').addEventListener('click', async () => {
             addLog("Solicitud de detención enviada.");
         });
     }
+    stopBtn.style.display = 'none';
+    startBtn.style.display = 'block';
 });
 
 // 3. ESCUCHAR MENSAJES DEL CONTENT.JS
 // El content.js nos enviará actualizaciones mientras procesa
 chrome.runtime.onMessage.addListener((msg) => {
+    console.log(msg)
     if (msg.type === "update") {
-        addLog(`[${msg.index}/${msg.total}] Procesando: ${msg.code}`);
+        addLog(`Procesando: ${msg.code}`);
+        updateProgress(msg.index,msg.total);
     }
 
     if (msg.type === "log") {
@@ -88,7 +102,11 @@ chrome.runtime.onMessage.addListener((msg) => {
     }
 
     if (msg.type === "finished") {
-        addLog("--- ✅ PROCESO FINALIZADO ---");
+        //addLog("--- PROCESO FINALIZADO ---");
+        progressTxt.innerHTML = 'PROCESO FINALIZADO';
+        stopBtn.style.display = 'none';
+        startBtn.style.display = 'block';
+        orderInput.value = '';
     }
 
     if (msg.type === "error") {
@@ -110,22 +128,22 @@ function addLog(message, isError = false) {
     logsDiv.prepend(entry);
 }
 
-async function reportErrorToServer(order, barcode) {
-    try {
-        addLog(`Reportando error: ${barcode}...`);
+function updateProgress(index, total){
+    progressTxt.innerHTML = `Procesando: ${index}/${total}`
+    let percent = (index/total)*100;
+    progressBar.style.width = percent+"%";
+}
 
-        // Puedes usar POST para enviar los datos de forma segura
-        let response = await fetch(urlApiReportError, {
+async function reportErrorToServer(order, barcode) {
+    addLog(`Reportando error: ${barcode}...`);
+    try {
+        fetch(urlApiReportError, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: `orden=${order}&barcode=${barcode}`
         });
-
-        if (response.ok) {
-            console.log(`Error reportado: Orden ${order}, Barcode ${barcode}`);
-        }
     } catch (err) {
         console.error("Error al reportar al endpoint de errores:", err);
     }
