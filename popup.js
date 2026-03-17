@@ -1,6 +1,6 @@
-const urlApi = 'http://localhost/test/api/';
-const urlApiGetOrder = urlApi + 'get.php';
-const urlApiReportError = urlApi + 'error.php';
+const urlApi = 'https://devp.market-care.com/public/index861029.php/es/api/supplyOrder/';
+const urlApiGetOrder = urlApi + 'getOCProducts';
+const urlApiReportError = urlApi + 'reportMissinProduct';
 
 const stopBtn = document.getElementById('stopBtn');
 const startBtn = document.getElementById('startBtn');
@@ -40,6 +40,8 @@ document.getElementById('startBtn').addEventListener('click', async () => {
         }
 
         const data = await response.json();
+        alert(data);
+        console.log(data);
 
         if (!Array.isArray(data) || data.length === 0) {
             throw new Error("La orden no contiene productos para procesar");
