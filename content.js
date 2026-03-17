@@ -7,6 +7,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             // 1. Respondemos inmediatamente para cerrar el canal de comunicación
             // Esto evita el error "The message port closed before a response was received"
             sendResponse({ status: "iniciado" });
+            bloquearPantalla("Procesando orden...");
 
             // 2. Ejecutamos el proceso de forma independiente
             startProcessing(msg.order, msg.items, msg.delay || 1000);
@@ -16,6 +17,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.action === "stop") {
         isRunning = false;
         sendResponse({ status: "detenido" });
+        desbloquearPantalla();
     }
 
     // IMPORTANTE: No retornar true si ya respondimos arriba
@@ -40,18 +42,21 @@ async function startProcessing(order, items, delay) {
         await processSingleBarcode(order, item);
 
         // Esperar el delay configurado antes del siguiente
-        await sleep(delay);
+        //await sleep(delay);
     }
 
     isRunning = false;
     chrome.runtime.sendMessage({ type: "finished" });
+    desbloquearPantalla();
 }
 
 async function processSingleBarcode(order, item) {
     let code = item.barcode;
     let cantidad = item.qty;
 
-    let input = document.getElementById("Barcode_filterBarcell");
+
+   // let input = document.getElementById("Barcode_filterBarcell");
+    let input =await waitForElement("#Barcode_filterBarcell");
     if (!input) {
         console.error("No se encontró el input de filtrado.");
         return;
@@ -66,19 +71,18 @@ async function processSingleBarcode(order, item) {
     }));
 
     // 2. Esperar a que la tabla cargue el resultado
-    await sleep(2000);
+    //await sleep(2000);
 
+    console.log("Esperando selector");
     const selector = `[aria-label^="${code}"]`;
-    let elemento = null;
+    //let elemento = null;
+    let elemento =await waitForElement(selector,1000);
+
 
     // Reintento para encontrar el elemento en la tabla
-    for (let j = 0; j < 5; j++) {
-        elemento = document.querySelector(selector);
-        if (elemento) break;
-        await sleep(300);
-    }
 
     if (elemento) {
+        console.log("Preparando para agregar elemento");
         elemento.scrollIntoView({ behavior: "smooth", block: "center" });
         await sleep(300);
 
@@ -88,9 +92,18 @@ async function processSingleBarcode(order, item) {
         }));
 
         // 4. Esperar popup y escribir cantidad
-        await sleep(1000); // Un poco más de tiempo para el render de Syncfusion
+        //await sleep(500); // Un poco más de tiempo para el render de Syncfusion
         await escribirCantidad(cantidad);
-        await confirmarDialog();
+        const confirmado = await confirmarDialog();
+        if(confirmado)
+        {
+            chrome.runtime.sendMessage({
+                type: "added",
+                code: item.barcode,
+            });
+
+        }
+
     } else {
         console.warn("No se encontró el barcode en la tabla:", code);
         chrome.runtime.sendMessage({ type: "log", message: `${code}`, order: order, code: code });
@@ -98,24 +111,21 @@ async function processSingleBarcode(order, item) {
 }
 
 async function escribirCantidad(valor) {
-    let inputQty = null;
-    for (let i = 0; i < 20; i++) {
-        // Selector específico para componentes Syncfusion (ejs-dialog)
-        inputQty = document.querySelector("ejs-dialog input.e-numerictextbox");
-        if (inputQty) break;
-        await sleep(300);
-    }
+    //let inputQty = null;
+
+    let inputQty =await waitForElement("ejs-dialog input.e-numerictextbox",2000);
 
     if (inputQty) {
         inputQty.focus();
         inputQty.value = valor;
         inputQty.dispatchEvent(new Event("input", { bubbles: true }));
         inputQty.dispatchEvent(new Event("change", { bubbles: true }));
-        await sleep(200);
+        //await sleep(200);
     }
 }
 
 async function confirmarDialog() {
+    let added = false;
     let btn = document.querySelector("ejs-dialog button.e-btn.e-primary:not(.e-flat)");
     // Intentar buscar el botón primario del diálogo
     if (!btn) {
@@ -124,10 +134,58 @@ async function confirmarDialog() {
 
     if (btn) {
         btn.click();
-        await sleep(1000); // Esperar que el diálogo cierre y la tabla se actualice
+        added = true;
+        //await sleep(1000); // Esperar que el diálogo cierre y la tabla se actualice
     }
+
+    return added;
 }
 
 function sleep(ms) {
     return new Promise(r => setTimeout(r, ms));
+}
+
+function bloquearPantalla(text = "Procesando...") {
+    let overlay = document.createElement("div");
+    overlay.id = "my-extension-overlay";
+
+    overlay.innerHTML = `
+        <div class="overlay-content">
+            <div class="spinner"></div>
+            <div>${text}</div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+}
+
+function desbloquearPantalla() {
+    console.log('mando a parar');
+    const overlay = document.getElementById("my-extension-overlay");
+    if (overlay) overlay.remove();
+}
+
+async function waitForElement(selector, timeout = 10000) {
+    return new Promise((resolve, reject) => {
+        const interval = 200;
+        let elapsed = 0;
+
+        const timer = setInterval(() => {
+            const el = document.querySelector(selector);
+
+            if (el) {
+                clearInterval(timer);
+                resolve(el);
+            }
+
+            elapsed += interval;
+
+            if (elapsed >= timeout) {
+                clearInterval(timer);
+                resolve(null);
+                //reject(`Elemento no encontrado: ${selector}`);
+            }
+
+        }, interval);
+    });
 }
