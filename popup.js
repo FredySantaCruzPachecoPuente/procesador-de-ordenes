@@ -1,6 +1,7 @@
-const urlApi = 'https://devp.market-care.com/public/index861029.php/es/api/supplyOrder/';
+const urlApi = 'https://app.market-care.com/es/api/supplyOrder/';
 const urlApiGetOrder = urlApi + 'getOCProducts';
 const urlApiReportError = urlApi + 'reportMissinProduct';
+const urlApiReportOk = urlApi + 'reportProduct';
 
 const stopBtn = document.getElementById('stopBtn');
 const startBtn = document.getElementById('startBtn');
@@ -123,6 +124,8 @@ chrome.runtime.onMessage.addListener((msg) => {
 
     if (msg.type === "added") {
         addLog(`✅ AGREGADO: ${msg.code}`, 'success');
+        //reportar como ok al server
+        reportOkToServer(msg.order, msg.code);
     }
 
     if (msg.type === "log") {
@@ -184,6 +187,21 @@ async function reportErrorToServer(order, barcode) {
             },
             body: `orden=${order}&barcode=${barcode}`
         });
+    } catch (err) {
+        console.error("Error al reportar al endpoint de errores:", err);
+    }
+}
+async function reportOkToServer(order, barcode) {
+    try {
+        fetch(urlApiReportOk, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `orden=${order}&barcode=${barcode}`
+        });
+
+        console.error("Metiendo el ok");
     } catch (err) {
         console.error("Error al reportar al endpoint de errores:", err);
     }

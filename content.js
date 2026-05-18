@@ -45,6 +45,20 @@ async function startProcessing(order, items, delay) {
         //await sleep(delay);
     }
 
+    //pongo la OC
+    const selector = `[aria-placeholder^="Nº OC"]`;
+    //let elemento = null;
+    let inputOt =await waitForElement(selector,1000);
+    if(inputOt)
+    {
+        inputOt.focus();
+        inputOt.value = order;
+        inputOt.dispatchEvent(new Event("input", { bubbles: true }));
+        inputOt.dispatchEvent(new KeyboardEvent("keydown", {
+            key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true
+        }));
+    }
+
     isRunning = false;
     chrome.runtime.sendMessage({ type: "finished" });
     desbloquearPantalla();
@@ -99,7 +113,8 @@ async function processSingleBarcode(order, item) {
         {
             chrome.runtime.sendMessage({
                 type: "added",
-                code: item.barcode,
+                order: order,
+                code: code,
             });
 
         }
