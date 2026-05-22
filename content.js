@@ -46,7 +46,7 @@ async function startProcessing(order, items, delay) {
     }
 
     //pongo la OC
-    const selector = `[aria-placeholder^="Nº OC"]`;
+    const selector = `#edNumOc`;
     //let elemento = null;
     let inputOt =await waitForElement(selector,1000);
     if(inputOt)
@@ -70,7 +70,7 @@ async function processSingleBarcode(order, item) {
 
 
    // let input = document.getElementById("Barcode_filterBarcell");
-    let input =await waitForElement("#Barcode_filterBarcell");
+    let input =await waitForElement('div[tabulator-field="Barcode"] .tabulator-header-filter input');
     if (!input) {
         console.error("No se encontró el input de filtrado.");
         return;
@@ -88,9 +88,12 @@ async function processSingleBarcode(order, item) {
     //await sleep(2000);
 
     console.log("Esperando selector");
-    const selector = `[aria-label^="${code}"]`;
+
+    //const selector = `[tabulator-field="Barcode"] .tabulator-cell__copy-cell-content:contains("${code}")`;
+    //const selector = `[aria-label^="${code}"]`;
     //let elemento = null;
-    let elemento =await waitForElement(selector,1000);
+    let elemento = await waitForBarcode(code, 1000);
+    //let elemento =await waitForElement(selector,1000);
 
 
     // Reintento para encontrar el elemento en la tabla
@@ -107,8 +110,10 @@ async function processSingleBarcode(order, item) {
 
         // 4. Esperar popup y escribir cantidad
         //await sleep(500); // Un poco más de tiempo para el render de Syncfusion
+        console.log("Escribiendo cantidad");
         await escribirCantidad(cantidad);
         const confirmado = await confirmarDialog();
+        console.log("Confirmado agregado");
         if(confirmado)
         {
             chrome.runtime.sendMessage({
@@ -117,6 +122,7 @@ async function processSingleBarcode(order, item) {
                 code: code,
             });
 
+            console.log("mensaje enviado");
         }
 
     } else {
@@ -128,7 +134,7 @@ async function processSingleBarcode(order, item) {
 async function escribirCantidad(valor) {
     //let inputQty = null;
 
-    let inputQty =await waitForElement("ejs-dialog input.e-numerictextbox",2000);
+    let inputQty =await waitForElement(".msDlg #edProdCant",2000);
 
     if (inputQty) {
         inputQty.focus();
@@ -141,16 +147,32 @@ async function escribirCantidad(valor) {
 
 async function confirmarDialog() {
     let added = false;
-    let btn = document.querySelector("ejs-dialog button.e-btn.e-primary:not(.e-flat)");
+    //let btn = document.querySelector("ejs-dialog button.e-btn.e-primary:not(.e-flat)");
+
+    let btn =await waitForElement('.msDlg-buttons #bAceptar');
+
     // Intentar buscar el botón primario del diálogo
-    if (!btn) {
+    /*if (!btn) {
         btn = document.querySelector("ejs-dialog button.e-btn:last-child");
-    }
+    }*/
 
     if (btn) {
-        btn.click();
+
+        btn.dispatchEvent(new MouseEvent("click", {
+            bubbles: true, cancelable: true, view: window
+        }));
+        let btnClose =await waitForElement('.msDlg .msDlg-close-button');
+
+        if(btnClose)
+        {
+            btnClose.dispatchEvent(new MouseEvent("click", {
+                bubbles: true, cancelable: true, view: window
+            }));
+        }
+        
         added = true;
-        //await sleep(1000); // Esperar que el diálogo cierre y la tabla se actualice
+        console.log("Agregando producto");
+        //await sleep(8000); // Esperar que el diálogo cierre y la tabla se actualice
     }
 
     return added;
@@ -199,6 +221,37 @@ async function waitForElement(selector, timeout = 10000) {
                 clearInterval(timer);
                 resolve(null);
                 //reject(`Elemento no encontrado: ${selector}`);
+            }
+
+        }, interval);
+    });
+}
+
+async function waitForBarcode(code, timeout = 10000) {
+    return new Promise((resolve) => {
+        const interval = 200;
+        let elapsed = 0;
+
+        const timer = setInterval(() => {
+
+            const elements = document.querySelectorAll(
+                '[tabulator-field="Barcode"] .tabulator-cell__copy-cell-content'
+            );
+
+            const found = [...elements].find(
+                el => el.textContent.trim() === code
+            );
+
+            if (found) {
+                clearInterval(timer);
+                resolve(found);
+            }
+
+            elapsed += interval;
+
+            if (elapsed >= timeout) {
+                clearInterval(timer);
+                resolve(null);
             }
 
         }, interval);
